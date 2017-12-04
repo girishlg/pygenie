@@ -240,7 +240,7 @@ class Genie3Adapter(GenieBaseAdapter):
 
     def get_info_for_rj(self, job_id, job=False, request=False,
                         applications=False, cluster=False, command=False,
-                        execution=False, timeout=30, *args, **kwargs):
+                        execution=False, output=False, timeout=30, *args, **kwargs):
         """
         Get information for RunningJob object.
         """
@@ -250,7 +250,8 @@ class Genie3Adapter(GenieBaseAdapter):
                        not applications,
                        not cluster,
                        not command,
-                       not execution])
+                       not execution,
+                       not output])
 
         timeout = None if self.disable_timeout else timeout
 
@@ -334,6 +335,19 @@ class Genie3Adapter(GenieBaseAdapter):
 
             ret['client_host'] = execution_data.get('hostName')
 
+        if output or get_all:
+            output_data = self.get(job_id,
+                                      path='output',
+                                      if_not_found=dict(),
+                                      timeout=timeout)
+            output_files = output_data.get('files', [])
+            for entry in output_files:
+                if entry.get('name') == 'stderr':
+                    if entry.get('size') != None:
+                        ret['stderr_size'] = entry.get('size')
+                if entry.get('name') == 'stdout':
+                    if entry.get('size') != None:
+                        ret['stdout_size'] = entry.get('size')
         return ret
 
     def get_genie_log(self, job_id, **kwargs):
